@@ -1,0 +1,56 @@
+{
+  "name": "E-Commerce Product Enrichment Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [{ "mode": "everyMinute" }]
+        },
+        "sheetName": "Raw_Products",
+        "event": "rowAdded"
+      },
+      "name": "Google Sheets Trigger",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "prompt": "Generate a standardized SKU, SEO meta tags, category, and persuasive 60-word e-commerce description for the following product in valid JSON format with keys: sku, category, seo_tags, description.\n\nProduct Title: {{$json[\"Product_Name\"]}}\nRaw Notes: {{$json[\"Notes\"]}}"
+      },
+      "name": "AI Product Enricher",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [500, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "sheetName": "Raw_Products",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": ["Product_Name"],
+          "value": {
+            "SKU": "={{$json[\"sku\"]}}",
+            "Category": "={{$json[\"category\"]}}",
+            "SEO_Tags": "={{$json[\"seo_tags\"]}}",
+            "Description": "={{$json[\"description\"]}}",
+            "Status": "Enriched"
+          }
+        }
+      },
+      "name": "Update Enriched Row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [760, 300]
+    }
+  ],
+  "connections": {
+    "Google Sheets Trigger": {
+      "main": [[{ "node": "AI Product Enricher", "type": "main", "index": 0 }]]
+    },
+    "AI Product Enricher": {
+      "main": [[{ "node": "Update Enriched Row", "type": "main", "index": 0 }]]
+    }
+  }
+}
